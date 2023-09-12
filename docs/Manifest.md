@@ -13,7 +13,7 @@ Each mod contains a manifest. Manifests have the following format:
 	"description": "It is a mod",
 	"authors": ["Atampy26", "No one else"],
 	"version": "1.0.0", // The mod's version, used to compare against the linked JSON - make sure to use semantic versioning (Major.Minor.Patch)
-	"frameworkVersion": "2.31.2", // The framework version the mod is designed for
+	"frameworkVersion": "2.32.1", // The framework version the mod is designed for
 
 	/* -------------------------------------- Optional data -------------------------------------- */
 	"updateCheck": "https://hitman-resources.netlify.app/framework/updates/exampleMod.json", // A JSON (see Mod Updates) that will be checked for updates (MUST BE HTTPS)
@@ -108,6 +108,7 @@ Each mod contains a manifest. Manifests have the following format:
 		"Atampy26.RequiredMod", // You'll generally want to load after a required mod
 		"Atampy26.OtherModThatThisModUses"
 	],
+	"peacockPlugins": ["VeryCoolPlugin.plugin.js"], // Relative paths to plugins that Peacock should load
 	"scripts": ["mod.ts", "helpers.ts", "blabla.ts"], // Relative paths to TypeScript files that can alter deployment of the mod - see Scripts for more information
 
 	"options": [
