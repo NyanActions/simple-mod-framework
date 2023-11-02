@@ -1047,7 +1047,7 @@ export default async function deploy(
 						await logger.verbose("Deep merge")
 						const oresToPatch = Object.fromEntries(oresContent.map((a: { Id: string }) => [a.Id, a]))
 						deepMerge(oresToPatch, entityContent)
-						const oresToWrite = Object.values(oresToPatch)
+						const oresToWrite = Object.entries(oresToPatch).map((a) => ({ ...a[1], Id: a[1].Id || a[0] }))
 
 						fs.writeFileSync(path.join(process.cwd(), "temp", oresChunk, "ORES", "0057C2C3941115CA.ORES.JSON"), JSON.stringify(oresToWrite))
 						fs.rmSync(path.join(process.cwd(), "temp", oresChunk, "ORES", "0057C2C3941115CA.ORES"))
@@ -1176,6 +1176,48 @@ export default async function deploy(
 					await logger.debug(`Applying JSON patch ${contentIdentifier}`)
 
 					entityContent = content.source === "disk" ? JSON.parse(fs.readFileSync(content.path, "utf8")) : JSON.parse(await content.content.text())
+
+					if (entityContent.file === "004F4B738474CEAD" && (entityContent.patch as any[]).every((a) => a.op === "add" && a.path === "/Root/Children/-")) {
+						if (content.source === "disk") {
+							const contractsToAdd = (entityContent.patch as any[]).map((a) => a.value)
+
+							const allContracts = Object.fromEntries(
+								instruction.content
+									.map((a) => (a.source === "disk" && a.type === "contract.json" ? a.path : false))
+									.filter((a) => a)
+									.map((a) => [fs.readJSONSync(a).Metadata.Id, [a, fs.readJSONSync(a)]])
+							)
+
+							if (contractsToAdd.every((a) => allContracts[a.Id])) {
+								for (const contract of contractsToAdd) {
+									fs.writeJSONSync(
+										allContracts[contract.Id][0],
+										deepMerge(allContracts[contract.Id][1], {
+											SMF: {
+												destinations: {
+													addToDestinations: true,
+													peacockIntegration: true,
+													narrativeContext: contract.NarrativeContext
+												}
+											}
+										})
+									)
+								}
+
+								fs.removeSync(content.path)
+
+								if (!config.developerMode) {
+									await logger.warn(`Reconfigured contracts from ${instruction.id}.`)
+								} else {
+									await logger.warn(`Updated a destination enabling JSON from ${instruction.id} to use the contract SMF key.`)
+								}
+
+								break
+							}
+						} else {
+							await logger.warn(`Mod ${instruction.id} emits a destination-enabling JSON.patch.json using scripting. This should not be the case.`)
+						}
+					}
 
 					const rpkgOfFile = await getRPKGOfHash(entityContent.file)
 
